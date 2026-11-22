@@ -1,13 +1,14 @@
-# MC AddOns · 传送带 & 自动炮台
+# MC AddOns · 传送带 / 自动炮台 / 可堆叠图腾
 
-网易我的世界 MCStudio（基岩版 AddOn）两个自制模组的源码 / 成品包 / 配图集合。
+网易我的世界 MCStudio（基岩版 AddOn）三个自制模组的源码 / 成品包 / 配图集合。
 
 | 模组 | 命名空间 | 版本 | 成品包 |
 | --- | --- | --- | --- |
 | 传送带 | `conveyor` | v0.0.6 | [mods/chuan-song-dai-mod.zip](mods/chuan-song-dai-mod.zip) |
 | 自动炮台 | `turret` | v0.0.5 | [mods/pao-tai-mod.zip](mods/pao-tai-mod.zip) |
+| 不死图腾可堆叠 | `minecraft:totem_of_undying`（原版覆盖） | v0.0.1 | [mods/totem-stack-mod.zip](mods/totem-stack-mod.zip) |
 
-两个包都是标准的「行为包 + 资源包」双包结构，导入 MCStudio 或直接拖进 `development_behavior_packs` / `development_resource_packs` 即可使用。
+三个包都是标准的「行为包 + 资源包」双包结构，导入 MCStudio 或直接拖进 `development_behavior_packs` / `development_resource_packs` 即可使用。
 
 ---
 
@@ -54,7 +55,36 @@
 - 绑定后右键其它方块 = 远程循环切模式，提示带模式与距离。
 - 半径 64 格、必须同维度；目标被拆自动解绑。绑定关系存玩家 extraData，断线重连不丢。
 
-## 三、仓库结构
+## 三、不死图腾可堆叠（totemstack）
+
+![图腾包图标](images/totem-icon_256x256.png)
+
+原版不死图腾 `max_stack_size` 是 1，一个占一格。这个包把它改到 **64**，配合副手权限，出门带一叠图腾不再是玩笑。
+
+**实现**：不新增物品，而是用原版 identifier 反向覆盖组件——行为包里放
+`netease_items_beh/minecraft_totem_of_undying.json`：
+
+```json
+{
+  "format_version": "1.10",
+  "minecraft:item": {
+    "description": { "identifier": "minecraft:totem_of_undying" },
+    "components": {
+      "minecraft:max_stack_size": 64,
+      "netease:allow_offhand": { "value": true }
+    }
+  }
+}
+```
+
+- **只改堆叠数**：其余组件一个没写，尽量把覆盖面收窄，避免顺手改掉原版图腾的其他属性。
+- **副手仍可用**：`netease:allow_offhand` 显式打开，叠放后照样能塞副手触发。
+- **想改数量**：直接把 `64` 换成别的值（网易文档限定上限 64），存盘重新进游戏即可，不用重建包。
+- **资源包**只放 `pack_icon` 和语言文件，贴图沿用原版；`texts/*.lang` 里同时写了 `item.totem_of_undying.name` 和 `item.minecraft:totem_of_undying.name` 两种键，防止覆盖后名字变成原始 key。
+
+> 注意：原版图腾在引擎里是硬编码物品（不在 `vanilla/items/` 的数据驱动清单中），这种「用同名 identifier 覆盖组件」属于扩展用法，进游戏后建议先 `/give @s totem_of_undying 64` 确认确实合成一格。
+
+## 四、仓库结构
 
 ```
 mods/      成品 AddOn 包（可直接导入）
@@ -65,7 +95,7 @@ tools/     生成脚本与离线测试
 
 `tools/` 里的脚本：
 
-- `gen_belt_textures.py` / `gen_turret_textures.py` / `gen_remote_icon.py` / `finalize_images.py` —— PIL 生成方块贴图、物品图标、商店配图（含镜像填充去水印）。
+- `gen_belt_textures.py` / `gen_turret_textures.py` / `gen_remote_icon.py` / `gen_totem_icon.py` / `finalize_images.py` —— PIL 生成方块贴图、物品图标、包图标、商店配图（含镜像填充去水印）。
 - `gen_turret_project.py` —— 按 MCStudio 目录规范生成炮台工程骨架。
 - `mcpclient.mjs` —— 直连 MCStudio MCP（SSE，端口 19131）建工程 / 导入资源的小客户端。
 - `test_conveyor.py` / `test_turret.py` —— **stub 掉 `mod.server.extraServerApi` 的离线单测**，不启动游戏就能跑服务端逻辑（炮台 27 个用例全过）。
@@ -75,7 +105,7 @@ python tools/test_turret.py     # 27 passed
 python tools/test_conveyor.py
 ```
 
-## 四、配图
+## 五、配图
 
 | 文件 | 尺寸 | 用途 |
 | --- | --- | --- |
@@ -83,3 +113,4 @@ python tools/test_conveyor.py
 | `images/2_iteration-icon_992x558.png` | 992×558 | 迭代图标 |
 | `images/3_device_900x580.png` | 900×580 | 设备图 |
 | `images/4~6_carousel-*_992x558.png` | 992×558 | 轮播图 |
+| `images/totem-icon_256x256.png` | 256×256 | 图腾模组的包图标（16×16 像素画放大） |
